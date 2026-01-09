@@ -13,9 +13,13 @@ export default function Home() {
   const [newAlias, setNewAlias] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [baseUrl, setBaseUrl] = useState('');
 
   useEffect(() => {
     checkAuthAndLoadUrls();
+    // Устанавливаем baseUrl после монтирования на клиенте
+    setBaseUrl(window.location.origin);
   }, []);
 
   const checkAuthAndLoadUrls = async () => {
@@ -81,6 +85,20 @@ export default function Home() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getShortUrl = (alias: string) => {
+    return baseUrl ? `${baseUrl}/api/${alias}` : `/api/${alias}`;
+  };
+
+  const copyToClipboard = async (alias: string, id: number) => {
+    try {
+      await navigator.clipboard.writeText(getShortUrl(alias));
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   return (
@@ -151,9 +169,12 @@ export default function Home() {
 
         {/* URLs List */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Мои алиасы
           </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Каждый алиас доступен по адресу: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-purple-600 dark:text-purple-400">{baseUrl || 'host'}/api/&#123;alias&#125;</code>
+          </p>
 
           {loading ? (
             <div className="text-center py-8">
@@ -177,19 +198,45 @@ export default function Home() {
                   key={url.id}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition"
                 >
-                  <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-purple-600 dark:text-purple-400 truncate">
+                      <h3 className="font-semibold text-purple-600 dark:text-purple-400 truncate mb-1">
                         {url.alias}
                       </h3>
-                      <a
-                        href={url.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-gray-600 dark:text-gray-400 hover:underline truncate block"
-                      >
-                        {url.url}
-                      </a>
+                      <div className="flex items-center gap-2 mb-2">
+                        <a
+                          href={getShortUrl(url.alias)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-mono text-blue-600 dark:text-blue-400 hover:underline truncate"
+                        >
+                          {getShortUrl(url.alias)}
+                        </a>
+                        <button
+                          onClick={() => copyToClipboard(url.alias, url.id)}
+                          className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition"
+                          title="Копировать ссылку"
+                        >
+                          {copiedId === url.id ? (
+                            <span className="text-green-600 dark:text-green-400 text-xs">✓</span>
+                          ) : (
+                            <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-xs">→</span>
+                        <a
+                          href={url.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline truncate"
+                        >
+                          {url.url}
+                        </a>
+                      </div>
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-500">
