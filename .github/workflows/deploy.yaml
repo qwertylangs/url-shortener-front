@@ -1,9 +1,11 @@
 name: Deploy Frontend
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
 
 jobs:
   deploy-front:
