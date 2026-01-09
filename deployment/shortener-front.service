@@ -1,0 +1,18 @@
+[Unit]
+Description=NextJS Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/url-shortener/frontend
+# Next.js в standalone режиме запускается через server.js (он находится в корне после копирования)
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=4
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target
