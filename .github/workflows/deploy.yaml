@@ -11,7 +11,8 @@ jobs:
   deploy-front:
     runs-on: ubuntu-latest
     env:
-      HOST: root@178.72.136.82
+      HOST: 178.72.136.82
+      USER: root
       FRONTEND_DIRECTORY: /var/www/url-shortener/frontend
       NGINX_AVAILABLE: /etc/nginx/sites-available/url-shortener
       NGINX_ENABLED: /etc/nginx/sites-enabled/url-shortener
@@ -47,28 +48,28 @@ jobs:
       - name: Sync Files to Server
         run: |
           # Создаем необходимые директории на сервере
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no root@${{ env.HOST }} "mkdir -p ${{ env.FRONTEND_DIRECTORY }}/.next/static"
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} "mkdir -p ${{ env.FRONTEND_DIRECTORY }}/.next/static"
           
           # 1. Найти папку с server.js в standalone (Next.js создает структуру на основе абсолютного пути)
           STANDALONE_DIR=$(find .next/standalone -name "server.js" -type f | head -n 1 | xargs dirname)
           echo "Found standalone directory: $STANDALONE_DIR"
           
           # Копируем содержимое standalone (server.js, package.json, node_modules)
-          rsync -avz -e "ssh -i deploy_key.pem" --delete "$STANDALONE_DIR/" root@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/
+          rsync -avz -e "ssh -i deploy_key.pem" --delete "$STANDALONE_DIR/" ${{ env.USER }}@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/
           
           # 2. Копируем статические файлы Next.js (_buildManifest, chunks и т.д.)
-          rsync -avz -e "ssh -i deploy_key.pem" .next/static/ root@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/.next/static/
+          rsync -avz -e "ssh -i deploy_key.pem" .next/static/ ${{ env.USER }}@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/.next/static/
           
           # 3. Копируем публичные файлы (images, favicon и т.д.)
-          rsync -avz -e "ssh -i deploy_key.pem" public/ root@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/public/
+          rsync -avz -e "ssh -i deploy_key.pem" public/ ${{ env.USER }}@${{ env.HOST }}:${{ env.FRONTEND_DIRECTORY }}/public/
 
       - name: Update systemd service
         run: |
           # Копируем systemd service файл
-          scp -i deploy_key.pem -o StrictHostKeyChecking=no ./deployment/shortener-front.service root@${{ env.HOST }}:/etc/systemd/system/shortener-front.service
+          scp -i deploy_key.pem -o StrictHostKeyChecking=no ./deployment/shortener-front.service ${{ env.USER }}@${{ env.HOST }}:/etc/systemd/system/shortener-front.service
           
           # Перезагружаем systemd и перезапускаем сервис
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no root@${{ env.HOST }} "\
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} "\
           systemctl daemon-reload && \
           systemctl enable shortener-front && \
           systemctl restart shortener-front"
@@ -77,9 +78,9 @@ jobs:
         run: |
           # Копируем конфиг Nginx из папки проекта (если он есть)
           if [ -f ./deployment/nginx.conf ]; then
-            scp -i deploy_key.pem -o StrictHostKeyChecking=no ./deployment/nginx.conf root@${{ env.HOST }}:${{ env.NGINX_AVAILABLE }}
+            scp -i deploy_key.pem -o StrictHostKeyChecking=no ./deployment/nginx.conf ${{ env.USER }}@${{ env.HOST }}:${{ env.NGINX_AVAILABLE }}
             
-            ssh -i deploy_key.pem -o StrictHostKeyChecking=no root@${{ env.HOST }} "\
+            ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} "\
             ln -sf ${{ env.NGINX_AVAILABLE }} ${{ env.NGINX_ENABLED }} && \
             nginx -t && \
             systemctl reload nginx"
@@ -87,5 +88,5 @@ jobs:
       
       - name: Fix permissions
         run: |
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no root@${{ env.HOST }} \
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} \
           "chown -R www-data:www-data ${{ env.FRONTEND_DIRECTORY }} && chmod -R 755 ${{ env.FRONTEND_DIRECTORY }}"
