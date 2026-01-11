@@ -81,5 +81,12 @@ export const api = {
     
     return response.json();
   },
+
+  async deleteUrl(alias: string): Promise<Response> {
+    return fetch(`${API_URL}/url/${alias}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  },
 };
 
