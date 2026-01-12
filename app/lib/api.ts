@@ -1,8 +1,5 @@
-// В production используем прокси через Nginx (/api -> localhost:8082)
-// В development - прямое обращение к бэкенду
-const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-  ? '/api'  // Production: через Nginx прокси
-  : 'http://localhost:8082';  // Development: прямое обращение
+// NEXT_PUBLIC_ переменные доступны в браузере (встраиваются при сборке)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082';
 
 export interface LoginData {
   email: string;
